@@ -95,6 +95,7 @@ void MultiSet::add(unsigned num)
          
         //check in second bucket
         unsigned mask = 0;
+      
         for (size_t i = _elementsInBucket - 1; i >= _elementsInBucket - elementsInSecondBucket; i--)
         {
             mask += (1 << i);
@@ -123,11 +124,8 @@ unsigned MultiSet::countOfNumber(unsigned num) const {
     unsigned startIndexInTheBucket = startIndexOfNumber % _elementsInBucket;
     if (isInOneBucket(startIndexOfNumber)) {
         unsigned movedBucked = _buckets[bucketIndex] >> (_elementsInBucket - _k - startIndexInTheBucket);
-        unsigned mask = 0;
-        for (size_t i = 0; i < _k; i++)
-        {
-            mask += (1 << i);
-        }
+        unsigned mask = creatingMaskWithOnes(0, _k);
+
         return (movedBucked & mask);
     }
     else {
@@ -136,7 +134,7 @@ unsigned MultiSet::countOfNumber(unsigned num) const {
         unsigned mask = creatingMaskWithOnes(0, elementsInFirstBucket);;
         unsigned result = ((_buckets[bucketIndex] & mask) << elementsInSecondBucket); //elements in the first bucket
 
-        unsigned movedBucked = _buckets[bucketIndex + 1] >> (_elementsInBucket - elementsInSecondBucket);
+        unsigned movedBucked = _buckets[bucketIndex + 1] >> (_elementsInBucket - elementsInSecondBucket); 
         mask = creatingMaskWithOnes(0, elementsInSecondBucket);
         return result + (movedBucked & mask);
     }
@@ -157,7 +155,7 @@ void MultiSet::printAllAvailable() const {
 
 void printBinary(uint8_t num) {
     int size = sizeof(num) * 8;
-    for (int i = size - 1; i >= 0; --i) {
+    for (int i = size - 1; i >= 0; i--) {
         int bit = (num >> i) & 1;
         std::cout << bit;
     }
@@ -172,45 +170,87 @@ void MultiSet::print() const
     }
 }
 
-void MultiSet::serialize(const char* fileName) const {
-    std::ofstream ofs(fileName, std::ios::binary);
+void MultiSet::serialize(std::ofstream& ofs) const{
 
-    if (!ofs.is_open()) {
-        return;
-    }
+     if (!ofs.is_open()) {
+         return;
+     }
 
-    ofs.write((const char*)(&_n), sizeof(_n));
-    ofs.write((const char*)(&_k), sizeof(_k));
-    ofs.write((const char*)(&_bucketsCount), sizeof(_bucketsCount));
+     ofs.write((const char*)&_bucketsCount, sizeof(_bucketsCount));
+     ofs.write((const char*)&_n, sizeof(_n));
+     ofs.write((const char*)&_k, sizeof(_k));
 
-    for (unsigned i = 0; i < _bucketsCount; ++i) {
-        ofs.write((const char*)(_buckets + i), sizeof(uint8_t));
-    }
+     ofs.write((const char*)_buckets, sizeof(uint8_t) * _bucketsCount);
 
-}
+     ofs.close();
+ }
 
-MultiSet deserialize(const char* fileName){
-    std::ifstream ifs(fileName, std::ios::binary);
+ void MultiSet::deserialize(std::ifstream& ifs) {
 
-    if (!ifs.is_open()) {
-        MultiSet m;
-        return m;
-    }
-    unsigned n, k, bucketsCount;
-    uint8_t* buckets;
-    ifs.read((char*)(&n), sizeof(n));
-    ifs.read((char*)(&k), sizeof(k));
-    ifs.read((char*)(&bucketsCount), sizeof(bucketsCount));
+     if (!ifs.is_open()) {
+         return;
+     }
 
-    buckets = new uint8_t[bucketsCount];
+     unsigned bucketsCount;
+     ifs.read((char*)&bucketsCount, sizeof(bucketsCount));
 
-    for (unsigned i = 0; i < bucketsCount; ++i) {
-        ifs.read((char*)(buckets + i), sizeof(uint8_t));
-    }
+     unsigned n;
+     ifs.read((char*)&n, sizeof(n));
 
-    MultiSet m(n,k,bucketsCount,buckets);
-    return m;
-}
+     unsigned k;
+     ifs.read((char*)&k, sizeof(k));
+
+     delete[]this->_buckets;
+
+     this->_buckets = new uint8_t[bucketsCount];
+     this->_bucketsCount = bucketsCount;
+     this->_n = n;
+     this->_k = k;
+
+     ifs.read((char*)_buckets, sizeof(uint8_t) * bucketsCount);
+
+     ifs.close();
+ }
+
+//void MultiSet::serialize(const char* fileName) const {
+//    std::ofstream ofs(fileName, std::ios::binary);
+//
+//    if (!ofs.is_open()) {
+//        return;
+//    }
+//
+//    ofs.write((const char*)(&_n), sizeof(_n));
+//    ofs.write((const char*)(&_k), sizeof(_k));
+//    ofs.write((const char*)(&_bucketsCount), sizeof(_bucketsCount));
+//
+//    for (unsigned i = 0; i < _bucketsCount; i++) { 
+//        ofs.write((const char*)(_buckets[i]), sizeof(uint8_t));
+//    }
+//
+//}
+//
+//MultiSet deserialize(const char* fileName){
+//    std::ifstream ifs(fileName, std::ios::binary);
+//
+//    if (!ifs.is_open()) {
+//        MultiSet m;
+//        return m;
+//    }
+//    unsigned n, k, bucketsCount;
+//    uint8_t* buckets;
+//    ifs.read((char*)(&n), sizeof(n));
+//    ifs.read((char*)(&k), sizeof(k));
+//    ifs.read((char*)(&bucketsCount), sizeof(bucketsCount));
+//
+//    buckets = new uint8_t[bucketsCount];
+//
+//    for (unsigned i = 0; i < bucketsCount; ++i) {
+//        ifs.read((char*)(buckets + i), sizeof(uint8_t));
+//    }
+//
+//    MultiSet m(n,k,bucketsCount,buckets);
+//    return m;
+//}
 
 unsigned MultiSet::getCountOfAllNumbers() const{
     unsigned result = 0;
@@ -223,7 +263,7 @@ unsigned MultiSet::getCountOfAllNumbers() const{
     return result;
 }
 
-void MultiSet::getAllAvailable(int*& numbers, int& size) const{
+void MultiSet::getAllAvailable(int*& numbers, unsigned& size) const{
     size = getCountOfAllNumbers();
     numbers = new int[size];
     int current = 0;
@@ -236,8 +276,11 @@ void MultiSet::getAllAvailable(int*& numbers, int& size) const{
     }
 }
 
-void intersectionOfSets(const MultiSet& lhs, const MultiSet& rhs, int*& result ,int& size)
+void intersectionOfSets(const MultiSet& lhs, const MultiSet& rhs, int*& result, unsigned& size)
 {
+    if (result) {
+        delete[] result;
+    }
     int* numbersInFirst = nullptr;
     size = 0;
     lhs.getAllAvailable(numbersInFirst, size);
@@ -254,11 +297,15 @@ void intersectionOfSets(const MultiSet& lhs, const MultiSet& rhs, int*& result ,
     {
         result[i] = -1;
     }
+    size = curr;
     delete[] numbersInFirst;
 }
 
-void differenceOfSets(const MultiSet& lhs, const MultiSet& rhs, int*& result, int& size)
+void differenceOfSets(const MultiSet& lhs, const MultiSet& rhs, int*& result, unsigned& size)
 {
+    if (result) {
+        delete[] result;
+    }
     int* numbersInFirst = nullptr;
     size = 0;
     lhs.getAllAvailable(numbersInFirst, size);
@@ -275,6 +322,7 @@ void differenceOfSets(const MultiSet& lhs, const MultiSet& rhs, int*& result, in
     {
         result[i] = -1;
     }
+    size = curr;
     delete[] numbersInFirst;
 }
 
@@ -283,7 +331,7 @@ void MultiSet::multisetExtension(int num) {
     if (num > _n) {
         return;
     }
-    unsigned startIndexOfNumber = getNumberStartIndex(num);
+    unsigned startIndexOfNumber = getNumberStartIndex(num); 
     unsigned bucketIndex = getBucketIndex(startIndexOfNumber);
     unsigned startIndexInTheBucket = startIndexOfNumber % _elementsInBucket;
     int mask = 0;
@@ -300,4 +348,79 @@ void MultiSet::multisetExtension(int num) {
         mask = creatingMaskWithOnes(0, elementsInFirstBucket);
         _buckets[bucketIndex] ^= mask;
     }
+}
+int main() {
+    MultiSet m(5, 3);
+    m.add(1);
+    std::cout << m.countOfNumber(1);
+    std::cout << std::endl;
+    m.print();
+    m.add(1);
+    std::cout << m.countOfNumber(1);
+    std::cout << std::endl;
+    m.print();
+    m.add(1);
+    std::cout << m.countOfNumber(1);
+    std::cout << std::endl;
+    m.print();
+    std::cout << std::endl;
+
+
+   
+
+    m.add(2);
+    m.add(2);
+    m.add(2);
+    m.add(2);
+    m.add(2);
+    std::cout << m.countOfNumber(2);
+    std::cout << std::endl;
+    m.print();
+
+    m.multisetExtension(2);
+    std::cout << m.countOfNumber(2);
+    std::cout << std::endl;
+    m.print();
+
+    MultiSet m1(6, 2);
+
+    m1.add(0);
+    m1.add(1);
+    m1.add(5);
+    m1.add(6);
+
+
+    int* difference = nullptr;
+    unsigned sizeOfDif = 0;
+    int* intersection = nullptr;
+    unsigned sizeOfIntersect = 0;
+
+    differenceOfSets(m, m1, difference, sizeOfDif);
+    intersectionOfSets(m, m1, intersection, sizeOfIntersect);
+
+    std::cout << "intersection : ";
+    for (size_t i = 0; i < sizeOfIntersect; i++)
+    {
+        std::cout << intersection[i] << " ";
+    }
+
+    std::cout << std::endl;
+    std::cout << "difference : ";
+    for (size_t i = 0; i < sizeOfDif; i++)
+    {
+        std::cout << difference[i] << " ";
+    }
+
+    std::cout << std::endl;
+
+    std::ofstream ofs("multiset.dat", std::ios::binary);
+    m.serialize(ofs);
+
+    std::ifstream ifs("multiset.dat", std::ios::binary);
+    m1.deserialize(ifs);
+    m.print();
+    m1.print();
+
+    delete[] intersection;
+    delete[] difference;
 }

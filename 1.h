@@ -11,11 +11,12 @@ class MultiSet
 	void free();
 	void copyFrom(const MultiSet& other);
 
-	unsigned getCountOfAllNumbers() const;
+
 	unsigned getBucketIndex(unsigned number) const;
 	bool isInOneBucket(unsigned startIndex) const;
 	unsigned getNumberStartIndex(unsigned num) const;
-	void getAllAvailable(int*& numbers, int& size) const;
+	void getAllAvailable(int*& numbers, unsigned& size) const;
+	unsigned getCountOfAllNumbers() const;
 public:
 	MultiSet() = default;
 	MultiSet(unsigned n, unsigned k, unsigned bucketsCount, uint8_t* buckets);
@@ -25,13 +26,14 @@ public:
 	MultiSet& operator=(const MultiSet& other);
 	~MultiSet();
 
+
 	void add(unsigned num);
 	void print() const;
 	unsigned countOfNumber(unsigned num) const;
 	void printAllAvailable() const;
-	void serialize(const char* fileName) const;
+	void serialize(std::ofstream& ofs) const;
 	void multisetExtension(int num);
-	friend MultiSet deserialize(const char* fileName);
-	friend void intersectionOfSets(const MultiSet& lhs, const MultiSet& rhs, int*& result, int& sizeOfResult);
-	friend void differenceOfSets(const MultiSet& lhs, const MultiSet& rhs, int*& result, int& sizeOfResult);;
+	void deserialize(std::ifstream& ifs);
+	friend void intersectionOfSets(const MultiSet& lhs, const MultiSet& rhs, int*& result, unsigned& sizeOfResult);
+	friend void differenceOfSets(const MultiSet& lhs, const MultiSet& rhs, int*& result, unsigned& sizeOfResult);;
 };
