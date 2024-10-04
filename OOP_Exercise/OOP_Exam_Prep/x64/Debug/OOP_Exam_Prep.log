@@ -1,0 +1,5 @@
+﻿  BooleanExpresionHandler.cpp
+  main.cpp
+  Generating Code...
+C:\Users\vikto\source\repos\OOP_Exam_Prep\OOP_Exam_Prep\BooleanExpresionHandler.cpp(32,1): warning C4715: 'expresionFactory': not all control paths return a value
+  OOP_Exam_Prep.vcxproj -> C:\Users\vikto\source\repos\OOP_Exam_Prep\x64\Debug\OOP_Exam_Prep.exe
